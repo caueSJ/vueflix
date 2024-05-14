@@ -1,5 +1,87 @@
 <script setup>
-console.log('VueFlix')
+import { computed, onMounted, ref, watch } from 'vue';
+
+const showAddMovie = ref(false);
+const hasError = ref(false);
+
+// Add new movie inputs
+const movieName = ref('');
+const moviePosterUrl = ref('');
+const movieRelease = ref('');
+const movieGenre = ref('');
+
+// Initial movie list
+const movies = ref([]);
+
+const save = () => {
+  if (!validate()) {
+    hasError.value = true;
+    return;
+  }
+  
+  movies.value.push({
+    name: movieName.value,
+    release: movieRelease.value,
+    genre: movieGenre.value,
+    posterUrl: moviePosterUrl.value,
+  });
+
+  clear();
+}
+
+const clear = () => {
+  movieName.value = '';
+  moviePosterUrl.value = '';
+  movieRelease.value = '';
+  movieGenre.value = '';
+
+  showAddMovie.value = hasError.value = false;
+}
+
+const validate = () => {
+  return movieName.value && movieRelease.value && movieGenre.value && moviePosterUrl.value;
+}
+
+const like = (index, status) => {
+  if (movies.value[index].hasOwnProperty('like') &&
+      movies.value[index].like === status) {
+    delete movies.value[index].like;
+  } else {
+    movies.value[index].like = status;
+  }
+}
+
+const removeMovie = (index) => {
+  const alertMessage = `Você tem certeza que deseja excluir o filme ${movies.value[index].name}?`;
+  if (confirm(alertMessage)) {
+    movies.value.splice(index, 1);
+  }
+};
+
+const selectedFilter = ref('all');
+const moviesToShow = computed(() => {
+  switch (selectedFilter.value) {
+    case 'like':
+      return movies.value.filter((item) => item.like == true);
+    case 'dislike':
+      return movies.value.filter((item) => item.like == false);
+    default: // Filter "All/Todos"
+      return movies.value;
+  }
+});
+
+watch(movies, (newInfo, oldInfo) => {
+  localStorage.setItem('vue-flix', JSON.stringify(newInfo));
+}, {deep: true} );
+
+onMounted(() => {
+  const dataLocalStorage = localStorage.getItem('vue-flix');
+  console.log(dataLocalStorage);
+  if (dataLocalStorage) {
+    movies.value = JSON.parse(dataLocalStorage);
+  }
+});
+
 </script>
 <template>
   <div class="vueflix">
@@ -7,44 +89,71 @@ console.log('VueFlix')
       <div class="filtros">
         <div class="titulo">Filtrar</div>
         <div class="opcoes-filtros">
-          <button class="botao ativo">Todos</button>
-          <button class="botao">Gostei</button>
-          <button class="botao">Não Gostei</button>
+          <button
+            class="botao"
+            @click="selectedFilter = 'all'"
+            :class="{ ativo: selectedFilter == 'all' }">Todos</button>
+          
+          <button
+            class="botao"
+            @click="selectedFilter = 'like'"
+            :class="{ ativo: selectedFilter == 'like' }">Gostei</button>
+          
+          <button
+            class="botao"
+            @click="selectedFilter = 'dislike'"
+            :class="{ ativo: selectedFilter == 'dislike' }">Não Gostei</button>
         </div>
       </div>
 
+      <!-- ADD NEW MOVIE -->
       <div class="novo-filme">
-        <!-- <div class="adicionar-filme">
-          <input type="text" autocomplete="off" placeholder="Nome do Filme" />
-          <input type="text" autocomplete="off" placeholder="URL da Imagem" />
-          <input type="text" autocomplete="off" placeholder="Ano de Lançamento" />
-          <input type="text" autocomplete="off" placeholder="Gênero" />
+        <div class="adicionar-filme" v-show="showAddMovie">
+          <span v-if="hasError" class="error-message">Preencha todos os campos</span>
+          <input v-model.trim="movieName" type="text" autocomplete="off" placeholder="Nome do Filme" />
+          <input v-model.trim="moviePosterUrl" type="text" autocomplete="off" placeholder="URL do Poster" />
+          <input v-model.trim="movieRelease" type="text" autocomplete="off" placeholder="Data de Lançamento" />
+          <input v-model.trim="movieGenre" type="text" autocomplete="off" placeholder="Gênero" />
           <div class="acoes">
-            <button class="botao ativo">Salvar</button>
-            <button class="botao danger ativo">Cancelar</button>
+            <button class="botao ativo" @click="save">Salvar</button>
+            <button class="botao danger ativo" @click="clear();">Cancelar</button>
           </div>
-        </div> -->
-        <button class="botao ativo">Adicionar Filme</button>
+        </div>
+        <button class="botao ativo" @click="showAddMovie = true" v-show="!showAddMovie">
+          Adicionar Filme
+        </button>
       </div>
     </div>
 
+    <!-- MOVIES LIST -->
     <div class="filmes">
-      <div class="filme">
+      <div class="filme" v-for="(movie, index) in moviesToShow">
         <div class="capa-container">
           <div class="acoes-filme">
-            <button class="botao">Gostei</button>
-            <button class="botao danger">Não Gostei</button>
-            <button class="botao danger">Excluir</button>
+            <button 
+              class="botao"
+              @click="like(index, true)"
+              :class="{ativo: movie.like === true}">Gostei</button>
+
+            <button 
+              class="botao danger"
+              @click="like(index, false)"
+              :class="{ativo: movie.like === false}">Não Gostei</button>
+
+            <button
+              class="botao danger"
+              @click="removeMovie(index)">Excluir</button>
           </div>
           <img
             class="capa"
-            src="https://www.themoviedb.org/t/p/w600_and_h900_bestv2/eqNdWOXUuTWefYMycWz7dVE0Irv.jpg"
-            alt=""
+            :src="movie.posterUrl"
+            :alt="movie.name + ' poster movie'"
           />
         </div>
-        <div class="nome">Vue.js: The Documentary</div>
-        <div class="info">24/02/2020 - Documentário</div>
+        <div class="nome">{{ movie.name }}</div>
+        <div class="info">{{ movie.release }} - {{ movie.genre }}</div>
       </div>
+      <p v-if="moviesToShow.length == 0" :style="{flex:1, textAlign:'center', marginTop:'16px'}">Não há filmes para exibir.</p>
     </div>
   </div>
 </template>
@@ -61,6 +170,11 @@ console.log('VueFlix')
 
     .adicionar-filme {
       display: flex;
+    }
+
+    .error-message {
+      align-self: center;
+      color: var(--vt-c-red);
     }
   }
 
