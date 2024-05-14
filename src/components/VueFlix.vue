@@ -90,17 +90,17 @@ onMounted(() => {
         <div class="titulo">Filtrar</div>
         <div class="opcoes-filtros">
           <button
-            class="botao"
+            class="botao filter"
             @click="selectedFilter = 'all'"
             :class="{ ativo: selectedFilter == 'all' }">Todos</button>
           
           <button
-            class="botao"
+            class="botao filter"
             @click="selectedFilter = 'like'"
             :class="{ ativo: selectedFilter == 'like' }">Gostei</button>
           
           <button
-            class="botao"
+            class="botao filter"
             @click="selectedFilter = 'dislike'"
             :class="{ ativo: selectedFilter == 'dislike' }">Não Gostei</button>
         </div>
@@ -185,8 +185,8 @@ onMounted(() => {
     min-height: 350px;
 
     .filme {
+      width: 200px;
       .capa-container {
-        width: 200px;
         height: auto;
         position: relative;
         .capa {
