@@ -58,6 +58,10 @@ const removeMovie = (index) => {
   }
 };
 
+const setDefaultBanner = (e) => {
+  e.target.src = 'https://placehold.jp/3fb883/ffffff/200x300.png?text=Movie%20Banner'
+}
+
 const selectedFilter = ref('all');
 const moviesToShow = computed(() => {
   switch (selectedFilter.value) {
@@ -148,6 +152,7 @@ onMounted(() => {
             class="capa"
             :src="movie.posterUrl"
             :alt="movie.name + ' poster movie'"
+            @error="setDefaultBanner"
           />
         </div>
         <div class="nome">{{ movie.name }}</div>
